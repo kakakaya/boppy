@@ -14,13 +14,13 @@ def check_xmas():
         return False
 
 
-def is_xmas(msg, dst):
+def is_xmas(robot, msg):
     ans = ""
     if check_xmas():
         ans = "YES"
     else:
         ans = "NO"
-    dst.respond(msg, ans)
+    robot.dst.respond(msg, ans)
 
 
 def register(robot):

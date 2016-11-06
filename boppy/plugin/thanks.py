@@ -25,8 +25,8 @@ response = [
 ]
 
 
-def resp(msg, dst):
-    dst.respond(msg, choice(response))
+def resp(robot, msg):
+    robot.dst.respond(msg, choice(response))
 
 
 def register(robot):

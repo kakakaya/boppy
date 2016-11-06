@@ -5,10 +5,10 @@
 import re
 
 
-def pong(robot, msg):
-    robot.dst.respond(msg, "PONG")
+def ans(robot, msg):
+    robot.dst.respond(msg, robot.conf)
 
 
 def register(robot):
-    patt = re.compile(r"ping", re.I)
-    robot.listen(patt, pong)
+    patt = re.compile(r"show config(ure)?", re.I)
+    robot.listen(patt, ans)
