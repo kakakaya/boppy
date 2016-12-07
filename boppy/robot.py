@@ -111,6 +111,8 @@ class Listener(object):
         pattern  -- 文字列、コンパイルされた正規表現、関数のいずれか
         callback -- patternがメッセージと一致した場合に返される
         """
+        if not callable(callback):
+            raise TypeError("callback for listener must be a function.")
         self.pattern = pattern
         self.callback = callback
 
@@ -150,6 +152,7 @@ def main():
     # robot.serve(stream=sys.stdin)
     print(robot)
     robot.serve()
+
 
 if __name__ == "__main__":
     main()
