@@ -78,7 +78,8 @@ class Robot(object):
 
         for plugin in plugins:
             # 各プラグインは必ずregister関数を持つ
-            plugin.register(self)
+            if hasattr(plugin, "register") and callable(plugin.register):
+                plugin.register(self)
 
     def listen(self, matcher, func):
         """If message matches by matcher, then return response by func.
