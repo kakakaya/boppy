@@ -16,14 +16,19 @@ class StdinInput(BaseInput):
 class StdinMessage(BaseMessage):
     def __init__(self, text):
         self._text = text
+        self.address = "stdout"  # 標準入力からのメッセージに返信をするには標準出力が適切であるので、"stdout"を返す。
 
+    @property
     def text(self):
         return self._text
 
 
 class StdoutOutput(BaseOutput):
-    def say(self, message, respond):
-        print(respond)
+    def __init__(self):
+        self.name = "stdout"
 
-    def respond(self, message, respond):
-        print(respond)
+    def say(self, message, text):
+        print(text)
+
+    def respond(self, message, text):
+        print(text)

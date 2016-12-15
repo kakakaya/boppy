@@ -6,7 +6,7 @@ import re
 
 
 def ans(robot, msg):
-    robot.dst.respond(msg, robot.conf)
+    robot.respond(msg, robot.conf)
 
 
 def register(robot):

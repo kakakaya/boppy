@@ -5,17 +5,17 @@
 import importlib
 import os
 import datetime
-from adapter.base import BaseInput, BaseOutput
-from adapter.stdio import StdinInput, StdoutOutput
+from .adapter.base import BaseInput, BaseOutput
+from .adapter.stdio import StdinInput, StdoutOutput
 
 
 class Robot(object):
-    def __init__(self, src, dst, conf={}):
+    def __init__(self, src, connections=[], **config):
         """
         Keyword Arguments:
-        src   -- input source. i.e. sys.stdin
-        dst   -- output destination. i.e. sys.stout
-        conf  -- configure. (default {})
+        src           -- input source. i.e. sys.stdin
+        connections   -- output destination. i.e. sys.stout
+        conf          -- configure. (default {})
         """
         # src は BaseInput から継承されていなければエラーにする
         if issubclass(src.__class__, BaseInput):
@@ -27,33 +27,35 @@ class Robot(object):
                 "This is subclass of: {}"
                 .format(subclasses)
             )
-        # dst は BaseOutput から継承されていなければエラーにする
-        if issubclass(dst.__class__, BaseOutput):
-            self.dst = dst
-        else:
-            subclasses = list(dst.__class__.__bases__)
-            raise Exception(
-                "Robot's output destination must be subclass of BaseOutput:" +
-                "This is subclass of: {}"
-                .format(subclasses)
-            )
 
-        self.conf = conf
+        # 出力先が定義されて
+        self.primary_destination = None
+        # 接続先のID一覧を作成してからそれぞれ接続する
+        self.destinations = {}
+
+        for c in connections:
+            self.ids.append(self.connect(d))
+
+        self.conf = config
 
         # 名前だけconfから取り出して初期化を行う
-        if self.conf.get("name"):
-            self.name = self.conf["name"]
-        else:
-            self.name = "Noppy"  # nice name?
+        # 指定されてなければ"noppy"
+        self.name = self.conf.get("name", "noppy")
+
+        # "/boppy ping"の/boppy部分を作る
+        self.prefix = self.conf.get("prefix", "/"+self.name)
 
         # Listenerを読み込む
         self.listeners = []
+
+        # "/boppy addtask some-task"のaddtask部分を登録する
+        self.commands = {}
 
         # 起動時間
         self.start_time = datetime.datetime.now()
 
     def __str__(self):
-        return '<Boppy named "{}", (src, dst)=({}, {}), {} plugins, uptime: {}>'.format(
+        return '<Boppy the"{}", (src, dst)=({}, {}), {} plugins, uptime: {}>'.format(
             self.name,
             self.src.__class__.__name__,
             self.dst.__class__.__name__,
@@ -63,6 +65,30 @@ class Robot(object):
 
     def uptime(self):
         return datetime.datetime.now() - self.start_time
+
+    def connect(self, conn):
+        """Robotが動作を反映させる対象となるものを接続する。
+        同じサービスを複数連携させても良いが、同じ動作の対象、
+        つまりユーザーを複数登録しないようにする。
+        そのため、接続先に対してハッシュ化を行う。
+        Keyword Arguments:
+        dst -- output destination
+        """
+        # dst は BaseOutput から継承されていなければエラーにする
+        if not issubclass(dst.__class__, BaseOutput):
+            subclasses = list(dst.__class__.__bases__)
+            raise Exception(
+                "Robot's output destination must be subclass of BaseOutput:" +
+                "This is subclass of: {}"
+                .format(subclasses)
+            )
+        _id = dst.get_id()
+        if _id in self.ids:
+            raise Exception(
+                "Failed to connect {}: already connected.".format(_id)
+            )
+        self.dst = dst
+        return dst.get_id()
 
     def load_plugin_dir(self, plugin_dir="plugin"):
         """指定されたディレクトリ内の.pyファイルを全て読み込む
@@ -90,17 +116,38 @@ class Robot(object):
         """
         self.listeners.append(Listener(matcher, func))
 
+    def run_command(self, msg):
+        # msgをパースする
+        pass
+
+    # def respond(self, msg, text):
+    #     "Robotのrespondが呼ばれた場合、srcの相手に出力することを試みる。"
+    #     if msg.address:
+    #         try:
+    #             self.destinations[msg.address].respond(msg, text)
+    #         except KeyError:
+    #             pass
+
+    # def say(self, msg, text):
+    #     "Robotのsayが呼ばれた場合、最初に追加された出力先が実装するsayを行う。"
+    #     self.primary_destination.say(msg, text)
+
     def serve(self):
         """Robotを動作させる。
         つまり、 self.src からの入力を受け取り、登録されたものに1つでもマッチしたら
         say または respond を行う。
         """
+        # ジェネレータからメッセージを受け取る
         for msg in self.src:
-            for listener in self.listeners:
-                if listener.match(msg):
-                    listener.react(self, msg)
-                    # 一回動作したらそのメッセージについては動作しない
-                    break
+            # prefixから始まるコマンドは優先
+            if msg.text.startwith(self.prefix):
+                self.run_command(msg)
+            else:
+                for listener in self.listeners:
+                    if listener.match(msg):
+                        listener.react(self, msg)
+                        # 一回動作したらそのメッセージについては動作しない
+                        break
 
 
 class Listener(object):
@@ -147,11 +194,16 @@ class Listener(object):
 
 
 def main():
-    robot = Robot(src=StdinInput(), dst=StdoutOutput())
+    # 標準入力をデータ読み込み元、標準出力を
+    robot = Robot(src=StdinInput(), dst=[StdoutOutput()])
+    # デフォルトプラグインの読み込み
     robot.load_plugin_dir()
 
     # robot.serve(stream=sys.stdin)
     print(robot)
+    print(list(robot.destinations.keys()))
+
+    # 動作を開始する
     robot.serve()
 
 

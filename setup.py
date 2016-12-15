@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name="package_name",
+    name="boppy",
     version="1.0.0",
     description='',
     author='kakakaya',
